@@ -1,7 +1,9 @@
 ﻿using Game.Core;
+using Game.Infrastructure;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Net.WebSockets;
 
 namespace Game.Networking
 {
@@ -12,6 +14,13 @@ namespace Game.Networking
         private int maxPlayers = 16;
         public int ConnectionCount = 0;
         public List<FantasyPlayer> Players;
+        private WebSocket webSocket;
+
+        private static readonly TimeSpan _closeTimeout = TimeSpan.FromMilliseconds(250);
+        private const int _receiveLoopBufferSize = 4 * 1024;
+        private readonly int? _maxIncomingMessageSize;
+
+        private readonly TaskQueue _sendQueue = new TaskQueue();
         public GameServer()
         {
         }
