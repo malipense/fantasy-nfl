@@ -20,7 +20,6 @@ namespace Game.Networking
         private const int _receiveLoopBufferSize = 4 * 1024;
         private readonly int? _maxIncomingMessageSize;
 
-        private readonly TaskQueue _sendQueue = new TaskQueue();
         public GameServer()
         {
         }

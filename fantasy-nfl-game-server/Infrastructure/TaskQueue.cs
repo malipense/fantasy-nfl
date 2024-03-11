@@ -11,6 +11,8 @@ namespace Game.Infrastructure
         private readonly int? _maxSize;
         private long _size;
 
+        public TaskQueue():this(TaskAsyncHelper.Empty)
+        {   }
         public TaskQueue(Task initialTask)
         {
             _lastQueueTask = initialTask;
@@ -38,7 +40,45 @@ namespace Game.Infrastructure
                 {
                     return _lastQueueTask;
                 }
+
+                if (_maxSize != null)
+                {
+                    if (Interlocked.Increment(ref _size) > _maxSize)
+                    {
+                        Interlocked.Decrement(ref _size);
+                        return null;
+                    }
+
+                    var counter = QueueSizeCounter;
+                    if (counter != null)
+                    {
+                        counter.Increment();
+                    }
+                }
+
+                var newTask = _lastQueueTask.Then((n, ns, q) => q.InvokeNext(n, ns), taskFunc, state, this);
+
+                _lastQueueTask = newTask;
+                return newTask;
             }
+        }
+        private void Dequeue()
+        {
+            if (_maxSize != null)
+            {
+                // Decrement the number of items left in the queue
+                Interlocked.Decrement(ref _size);
+
+                var counter = QueueSizeCounter;
+                if (counter != null)
+                {
+                    counter.Decrement();
+                }
+            }
+        }
+        private Task InvokeNext(Func<object, Task> next, object nextState)
+        {
+            return next(nextState).Finally(s => ((TaskQueue)s).Dequeue(), this);
         }
     }
 }
